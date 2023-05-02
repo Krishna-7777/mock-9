@@ -18,10 +18,15 @@ postRoutes.get('/', async (ask, give) => {
 postRoutes.post('/', async (ask, give) => {
     try {
         let payload = ask.body
-        payload.user = (await jwt.decode(ask.headers.authorization)).id
+        let userid = (await jwt.decode(ask.headers.authorization)).id
+        payload.user = userid
         payload.createdAt = new Date()
         let post = new PostModel(payload)
-        post.save()
+        await post.save()
+        let id=await PostModel.find({text:payload.text})
+        let user=await UserModel.findById(userid)
+        user.posts.push(id[0]._id)
+        await UserModel.findByIdAndUpdate(userid,{posts:user.posts})
         give.status(201).send({ msg: "Post Created!" })
     } catch (error) {
         give.status(403).send({ msg: "Error in creating the post" })
